@@ -5,7 +5,7 @@
 
 /*
  * PRU memory-mapped registers from the point-of-view of PRUs
- * Scraped one-by-one from tables in TI Literature SPRUIM2H.
+ * Created from Reference Manual (SPRUIM2H).
  *
  * John Yu
  * byu9@ncsu.edu
@@ -14,19 +14,31 @@
 
 
 
-#define PRU_INTC         ((volatile struct pru_intc*)    0x00020000U)
+/*
+ * Memory-Mapped Register Blocks
+ * Table 6-405 in Reference Manual (SPRUIM2H)
+ */
+#define PRU_INTC        ((volatile struct pru_intc*) 0x00020000U)
 
-#define PRU0_CONTROL     ((volatile struct pru_control*) 0x00022000U)
-#define PRU0_DEBUG       ((volatile struct pru_debug*)   0x00022400U)
-#define PRU1_CONTROL     ((volatile struct pru_control*) 0x00024000U)
-#define PRU1_DEBUG       ((volatile struct pru_debug*)   0x00024400U)
+#define PRU0_CTRL       ((volatile struct pru_ctrl*) 0x00022000U)
+#define PRU1_CTRL       ((volatile struct pru_ctrl*) 0x00024000U)
+#define RTU_PRU0_CTRL   ((volatile struct pru_ctrl*) 0x00023000U)
+#define RTU_PRU1_CTRL   ((volatile struct pru_ctrl*) 0x00023800U)
+#define TX_PRU0_CTRL    ((volatile struct pru_ctrl*) 0x00025000U)
+#define TX_PRU1_CTRL    ((volatile struct pru_ctrl*) 0x00025800U)
 
-#define PRU_CONFIG       ((volatile struct pru_config*)  0x00026000U)
-#define PRU_UART0        ((volatile struct pru_uart*)    0x00028000U)
-#define PRU_IEP0         ((volatile struct pru_iep*)     0x0002E000U)
-#define PRU_ECAP0        ((volatile struct pru_ecap*)    0x00030000U)
-#define PRU_MIIRT_CFG    ((volatile struct pru_miirt*)   0x00032000U)
-#define PRU_MDIO         ((volatile struct pru_mdio*)    0x00032400U)
+#define PRU0_TM         ((volatile struct pru_tm*) 0x0002A000)
+#define PRU1_TM         ((volatile struct pru_tm*) 0x0002A200)
+#define RTU_PRU0_TM     ((volatile struct pru_tm*) 0x0002A100)
+#define RTU_PRU1_TM     ((volatile struct pru_tm*) 0x0002A300)
+#define TX_PRU0_TM      ((volatile struct pru_tm*) 0x0002A400)
+#define TX_PRU1_TM      ((volatile struct pru_tm*) 0x0002A500)
+
+#define PRU_CONFIG      ((volatile struct pru_config*) 0x00026000U)
+#define PRU_UART0       ((volatile struct pru_uart*)   0x00028000U)
+#define PRU_IEP0        ((volatile struct pru_iep*)    0x0002E000U)
+#define PRU_IEP1        ((volatile struct pru_iep*)    0x0002F000U)
+#define PRU_ECAP0       ((volatile struct pru_ecap*)   0x00030000U)
 
 
 
@@ -41,24 +53,58 @@
 
 
 
-struct __attribute__((aligned, packed)) pru_control
+struct __attribute__((aligned, packed)) pru_ctrl
 {
     /* Table 6-500 in SPRUIM2H */
     // 0x00 - 0x0C
-    uint32_t PRU_CONTROL;    // Offset 0h - Control Register
-    uint32_t PRU_STATUS;     // Offset 4h - Status Register
-    uint32_t PRU_WAKEUP_EN;  // Offset 8h - Wakeup Enable Register
-    uint32_t PRU_CYCLE;      // Offset Ch - Cycle Count
+    uint32_t CONTROL;    // Offset 0h - Control Register
+    uint32_t STATUS;     // Offset 4h - Status Register
+    uint32_t WAKEUP_EN;  // Offset 8h - Wakeup Enable Register
+    uint32_t CYCLE;      // Offset Ch - Cycle Count
 
     // 0x10 - 0x1C
-    uint32_t PRU_STALL;      // Offset 10h - Stall Count
+    uint32_t STALL;      // Offset 10h - Stall Count
     uint32_t reserved1[3];
 
     // 0x20 - 0x2C
-    uint32_t PRU_CTBIR0;     // Offset 20h - Constant Table Block Index Register 0
-    uint32_t PRU_CTBIR1;     // Offset 24h - Constant Table Block Index Register 1
-    uint32_t PRU_CTPPR0;     // Offset 28h - Constant Table Programmable Pointer Register 0
-    uint32_t PRU_CTPPR1;     // Offset 2Ch - Constant Table Programmable Pointer Register 1
+    uint32_t CTBIR0;     // Offset 20h - Constant Table Block Index Register 0
+    uint32_t CTBIR1;     // Offset 24h - Constant Table Block Index Register 1
+    uint32_t CTPPR0;     // Offset 28h - Constant Table Programmable Pointer Register 0
+    uint32_t CTPPR1;     // Offset 2Ch - Constant Table Programmable Pointer Register 1
+};
+
+
+
+struct __attribute__((aligned, packed)) pru_tm
+{
+    // 0x00 - 0x0C
+    uint32_t GLOBAL_CFG;     // Offset 0h - Global Configuration
+    uint32_t GLOBAL_STATUS;  // Offset 4h - Global Status
+    uint32_t TS1_PC_S0;      // Offset 8h - Task1 Subroutine0 PC
+    uint32_t TS1_PC_S1;      // Offset Ch - Task1 Subroutine1 PC
+
+    // 0x10 - 0x1C
+    uint32_t TS1_PC_S2;  // Offset 10h - Task1 Subroutine2 PC
+    uint32_t TS1_PC_S3;  // Offset 14h - Task1 Subroutine3 PC
+    uint32_t TS1_PC_S4;  // Offset 18h - Task1 Subroutine4 PC
+    uint32_t TS2_PC_S0;  // Offset 1Ch - Task2 Subroutine0 PC
+
+    // 0x20 - 0x2C
+    uint32_t TS2_PC_S1;  // Offset 20h - Task2 Subroutine1 PC
+    uint32_t TS2_PC_S2;  // Offset 24h - Task2 Subroutine2 PC
+    uint32_t TS2_PC_S3;  // Offset 28h - Task2 Subroutine3 PC
+    uint32_t TS2_PC_S4;  // Offset 2Ch - Task2 Subroutine4 PC
+
+    // 0x30 - 0x3C
+    uint32_t RX_CFG;        // Offset 30h - RX Configuration
+    uint32_t TX_CFG;        // Offset 34h - TX Configuration
+    uint32_t TS1_GEN_CFG1;  // Offset 38h - Generic TS1 Configuration1
+    uint32_t TS1_GEN_CFG2;  // Offset 3Ch - Generic TS1 Configuration2
+
+    // 0x40 - 0x48
+    uint32_t TS2_GEN_CFG1;  // Offset 40h - Generic TS2 Configuration1
+    uint32_t TS2_GEN_CFG2;  // Offset 44h - Generic TS2 Configuration2
+    uint32_t CAP_EN_CFG;    // Offset 48h - Enable Capture new Event Configuration
 };
 
 
@@ -120,6 +166,9 @@ struct __attribute__((aligned, packed)) pru_intc
     uint32_t ENA_STATUS_REG4;  // Offset 290h - Enabled Status Register 4
     uint32_t reserved10[3];
 
+    // 0x2A0 - 0x2FC
+    uint32_t reserved11[24];
+
     // 0x300 - 0x30C
     uint32_t ENABLE_REG0;  // Offset 300h - Enable Register 0
     uint32_t ENABLE_REG1;  // Offset 304h - Enable Register 1
@@ -128,7 +177,10 @@ struct __attribute__((aligned, packed)) pru_intc
 
     // 0x310 - 0x31C
     uint32_t ENABLE_REG4;  // Offset 310h - Enable Register 4
-    uint32_t reserved11[3];
+    uint32_t reserved12[3];
+
+    // 0x320 - 0x37C
+    uint32_t reserved13[24];
 
     // 0x380 - 0x38C
     uint32_t ENABLE_CLR_REG0;  // Offset 380h - Enable Clear Register 0
@@ -138,13 +190,17 @@ struct __attribute__((aligned, packed)) pru_intc
 
     // 0x390 - 0x39C
     uint32_t ENABLE_CLR_REG4;  // Offset 390h - Enable Clear Register 4
-    uint32_t reserved12[3];
+    uint32_t reserved14[3];
+
+    // 0x3A0 - 0x3FC
+    uint32_t reserved15[24];
 
     // 0x400 - 0x40C
     uint32_t CH_MAP_REG0;  // Offset  400h - Interrupt Channel Map Register
     uint32_t CH_MAP_REG1;  // Offset  404h - Interrupt Channel Map Register
     uint32_t CH_MAP_REG2;  // Offset  408h - Interrupt Channel Map Register
     uint32_t CH_MAP_REG3;  // Offset  40Ch - Interrupt Channel Map Register
+
 
     // 0x410 - 0x41C
     uint32_t CH_MAP_REG4;  // Offset  410h - Interrupt Channel Map Register
@@ -201,7 +257,7 @@ struct __attribute__((aligned, packed)) pru_intc
     uint32_t CH_MAP_REG39;  // Offset 49Ch - Interrupt Channel Map Register
 
     // 0x4A0 - 0x7FC
-    uint32_t reserved13[216];
+    uint32_t reserved16[216];
 
     // 0x800 - 0x80C
     uint32_t HINT_MAP_REG0;  // Offset 800h - Host Interrupt Map Register
@@ -211,10 +267,10 @@ struct __attribute__((aligned, packed)) pru_intc
 
     // 0x810 - 0x81C
     uint32_t HINT_MAP_REG4;  // Offset 810h - Host Interrupt Map Register
-    uint32_t reserved14[3];
+    uint32_t reserved17[3];
 
     // 0x820 - 0x8FC
-    uint32_t reserved15[56];
+    uint32_t reserved18[56];
 
     // 0x900 - 0x90C
     uint32_t PRI_HINT_REG0; // Offset 900h - Host Int 0 Prioritized Interrupt Register
@@ -247,7 +303,7 @@ struct __attribute__((aligned, packed)) pru_intc
     uint32_t PRI_HINT_REG19; // Offset  94Ch - Host Int 19 Prioritized Interrupt Register
 
     // 0x950 - 0xCFC
-    uint32_t reserved16[236];
+    uint32_t reserved19[236];
 
     // 0xD00 - 0xD0C
     uint32_t POLARITY_REG0;  // Offset  D00h - Polarity Register 0
@@ -257,10 +313,10 @@ struct __attribute__((aligned, packed)) pru_intc
 
     // 0xD10 - 0xD1C
     uint32_t POLARITY_REG4;  // Offset  D10h - Polarity Register 4
-    uint32_t reserved17[3];
+    uint32_t reserved20[3];
 
     // 0xD20 - 0xD7C
-    uint32_t reserved18[24];
+    uint32_t reserved21[24];
 
     // 0xD80 - 0xD8C
     uint32_t TYPE_REG0;  // Offset  D80h - Type Register 0
@@ -270,10 +326,10 @@ struct __attribute__((aligned, packed)) pru_intc
 
     // 0xD90 - 0xD9C
     uint32_t TYPE_REG4;  // Offset  D90h - Type Register 4
-    uint32_t reserved19[3];
+    uint32_t reserved22[3];
 
     // 0xDA0 - 0x100C
-    uint32_t reserved20[216];
+    uint32_t reserved23[216];
 
     // 0x1100 - 0x110C
     uint32_t NEST_LEVEL_REG0; // Offset  1100h - Host Int 0 Nesting Level Register
@@ -305,6 +361,9 @@ struct __attribute__((aligned, packed)) pru_intc
     uint32_t NEST_LEVEL_REG18; // Offset  1148h - Host Int 18 Nesting Level Register
     uint32_t NEST_LEVEL_REG19; // Offset  114Ch - Host Int 19 Nesting Level Register
 
+    // 0x1150 - 0x14FC
+    uint32_t reserved24[236];
+
     // 0x1500
     uint32_t ENABLE_HINT_REG0;  // Offset  1500h - Host Int Enable Register 0
 };
@@ -314,26 +373,26 @@ struct __attribute__((aligned, packed)) pru_intc
 struct __attribute__((aligned, packed)) pru_uart
 {
     // 0x00 - 0x0C
-    uint32_t UART_RBR_TBR;   // Offset 0h - Receive and Transmit Buffer Registers
-    uint32_t UART_INT_EN;    // Offset 4h - UART Interrupt Enable Register
-    uint32_t UART_INT_FIFO;  // Offset 8h - Interrupt Identification Register / FIFO Control Register
-    uint32_t UART_LCTR;      // Offset Ch - Line Control Register
+    uint32_t RBR_TBR;   // Offset 0h - Receive and Transmit Buffer Registers
+    uint32_t INT_EN;    // Offset 4h - UART Interrupt Enable Register
+    uint32_t INT_FIFO;  // Offset 8h - Interrupt Identification Register / FIFO Control Register
+    uint32_t LCTR;      // Offset Ch - Line Control Register
 
     // 0x10 - 0x1C
-    uint32_t UART_MCTR;     // Offset 10h - Modem Control Register
-    uint32_t UART_LSR1;     // Offset 14h - Line Status Register1
-    uint32_t UART_MSR;      // Offset 18h - Modem Status Register
-    uint32_t UART_SCRATCH;  // Offset 1Ch - UART Scratch Register
+    uint32_t MCTR;     // Offset 10h - Modem Control Register
+    uint32_t LSR1;     // Offset 14h - Line Status Register1
+    uint32_t MSR;      // Offset 18h - Modem Status Register
+    uint32_t SCRATCH;  // Offset 1Ch - UART Scratch Register
 
     // 0x20 - 0x2C
-    uint32_t UART_DIVLSB;  // Offset 20h - UART Divisor Register
-    uint32_t UART_DIVMSB;  // Offset 24h - UART Divisor Register
-    uint32_t UART_PID;     // Offset 28h - Peripheral ID Register
+    uint32_t DIVLSB;  // Offset 20h - UART Divisor Register
+    uint32_t DIVMSB;  // Offset 24h - UART Divisor Register
+    uint32_t PID;     // Offset 28h - Peripheral ID Register
     uint32_t reserved1[1];
 
     // 0x30 - 0x34
-    uint32_t UART_PWR;   // Offset 30h - UART Power Management and Emulation Register
-    uint32_t UART_MODE;  // Offset 34h - UART Mode Definition Register
+    uint32_t PWR;   // Offset 30h - UART Power Management and Emulation Register
+    uint32_t MODE;  // Offset 34h - UART Mode Definition Register
 };
 
 
@@ -353,14 +412,14 @@ struct __attribute__((aligned, packed)) pru_config
     uint32_t RSTISO_REG;   // Offset 1Ch - Reset Isolation Register
 
     // 0x20 - 0x2C
-    uint32_t MII_RT_REG;   // Offset 2Ch - MII_RT Event Enable Register
     uint32_t reserved1[3];
+    uint32_t MII_RT_REG;   // Offset 2Ch - MII_RT Event Enable Register
 
     // 0x30 - 0x3C
     uint32_t IEPCLK_REG;    // Offset 30h - IEP Configuration Register
     uint32_t SPP_REG;       // Offset 34h - Scratchpad Priority and Shift Register
-    uint32_t CORE_SYNC_REG; // Offset 3Ch - CoreSync Configuration Register
     uint32_t reserved2[1];
+    uint32_t CORE_SYNC_REG; // Offset 3Ch - CoreSync Configuration Register
 
     // 0x40 - 0x4C
     uint32_t SA_MX_REG;                // Offset 40h - SA Mux Selection Register
@@ -447,8 +506,9 @@ struct __attribute__((aligned, packed)) pru_config
     uint32_t ICSSG_PRU1_ED_CH2_CFG1_REG;  // Offset 11Ch - PRU1 ED Channel 2 Configuration 1
 
     // 0x120 - 0x12C
-    uint32_t reserved4[2];
+    uint32_t reserved4[1];
     uint32_t ICSSG_RTU0_POKE_EN0_REG;  // Offset 124h - RTU0 Poke Enable 0 Register
+    uint32_t reserved5[1];
     uint32_t ICSSG_RTU1_POKE_EN0_REG;  // Offset 12Ch - RTU1 Poke Enable 0 Register
 
     // 0x130 - 0x13C
@@ -676,6 +736,9 @@ struct __attribute__((aligned, packed)) pru_iep
     uint32_t SYNC1_DELAY_REG;  // Offset 198h - Sync 1 Delay Register
     uint32_t SYNC_START_REG;   // Offset 19Ch - Sync Start Configure Register
 
+    // 0x1A0 - 0x1FC
+    uint32_t reserved3[24];
+
     // 0x200 - 0x20C
     uint32_t WD_PREDIV_REG;  // Offset 200h - Watchdog Pre-Divider Register
     uint32_t PDI_WD_TIM_REG; // Offset 204h - PDI Watchdog Timer Configure Register
@@ -685,10 +748,10 @@ struct __attribute__((aligned, packed)) pru_iep
     // 0x210 - 0x21C
     uint32_t WD_EXP_CNT_REG; // Offset 210h - Watchdog Timer Expiration Counter Register
     uint32_t WD_CTRL_REG;    // Offset 214h - Watchdog Control Register
-    uint32_t reserved3[2];
+    uint32_t reserved4[2];
 
     // 0x220 - 0x2FC
-    uint32_t reserved4[56];
+    uint32_t reserved5[56];
 
     // 0x300 - 0x30C
     uint32_t DIGIO_CTRL_REG;        // Offset 300h - DIGIO Control Register
@@ -703,37 +766,5 @@ struct __attribute__((aligned, packed)) pru_iep
 };
 
 
-
-struct __attribute__((aligned, packed)) pru_task_mgr
-{
-    // 0x00 - 0x0C
-    uint32_t GLOBAL_CFG;     // Offset 0h - Global Configuration
-    uint32_t GLOBAL_STATUS;  // Offset 4h - Global Status
-    uint32_t TS1_PC_S0;      // Offset 8h - Task1 Subroutine0 PC
-    uint32_t TS1_PC_S1;      // Offset Ch - Task1 Subroutine1 PC
-
-    // 0x10 - 0x1C
-    uint32_t TS1_PC_S2;  // Offset 10h - Task1 Subroutine2 PC
-    uint32_t TS1_PC_S3;  // Offset 14h - Task1 Subroutine3 PC
-    uint32_t TS1_PC_S4;  // Offset 18h - Task1 Subroutine4 PC
-    uint32_t TS2_PC_S0;  // Offset 1Ch - Task2 Subroutine0 PC
-
-    // 0x20 - 0x2C
-    uint32_t TS2_PC_S1;  // Offset 20h - Task2 Subroutine1 PC
-    uint32_t TS2_PC_S2;  // Offset 24h - Task2 Subroutine2 PC
-    uint32_t TS2_PC_S3;  // Offset 28h - Task2 Subroutine3 PC
-    uint32_t TS2_PC_S4;  // Offset 2Ch - Task2 Subroutine4 PC
-
-    // 0x30 - 0x3C
-    uint32_t RX_CFG;        // Offset 30h - RX Configuration
-    uint32_t TX_CFG;        // Offset 34h - TX Configuration
-    uint32_t TS1_GEN_CFG1;  // Offset 38h - Generic TS1 Configuration1
-    uint32_t TS1_GEN_CFG2;  // Offset 3Ch - Generic TS1 Configuration2
-
-    // 0x40 - 0x48
-    uint32_t TS2_GEN_CFG1;  // Offset 40h - Generic TS2 Configuration1
-    uint32_t TS2_GEN_CFG2;  // Offset 44h - Generic TS2 Configuration2
-    uint32_t CAP_EN_CFG;    // Offset 48h - Enable Capture new Event Configuration
-};
 
 #endif /* H_422EC606_EE2E_11EF_9F1A_F875A456212A */
