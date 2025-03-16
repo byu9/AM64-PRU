@@ -91,7 +91,7 @@
                             </cpu>
                         </subpath>
                     <subpath id="MAIN_PULSAR_0_0">
-                            <cpu HW_revision="1.0" XML_version="1.2" description="Cortex_R5 CPU 0" id="MAIN_PULSAR_Cortex_R5_0_0" isa="Cortex_R5">
+                            <cpu HW_revision="1.0" XML_version="1.2" description="Cortex_R5 CPU 0" deviceSim="false" id="MAIN_PULSAR_Cortex_R5_0_0" isa="Cortex_R5">
                                 <property Type="choicelist" Value="1" id="bypass"/>
                             </cpu>
                         </subpath>

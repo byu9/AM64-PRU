@@ -7,6 +7,7 @@
  */
 #include <math.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "pru_platform.h"
 #include "pru_periph.h"
 
@@ -54,11 +55,10 @@ void pru_use_peripheral_pin_control(void)
 
 
 
-
 #define PWM_DESIRED_HZ           (10000)
 #define IEP_BASE_HZ              (250000000)
 
-#define IEP_COUNTER_HIGH_LIMIT   \
+#define IEP_COUTER_WATERMARK   \
     ((uint32_t) (IEP_BASE_HZ / PWM_DESIRED_HZ / 2))
 
 void pru_use_three_phase_pwm(void)
@@ -66,39 +66,34 @@ void pru_use_three_phase_pwm(void)
     // Enable clocks
     PRU_CFG->CGR_REG_bit.IEP_CLK_EN = 1;
     PRU_CFG->CGR_REG_bit.INTC_CLK_EN = 1;
-    PRU_CFG->CGR_REG_bit.TOP_HALF_CLK_GATE_EN = 1;
-    PRU_CFG->CGR_REG_bit.BOTTOM_HALF_CLK_GATE_EN = 1;
-    PRU_CFG->CGR_REG_bit.AUTO_SLICE0_CLK_GATE_EN = 1;
-    PRU_CFG->CGR_REG_bit.AUTO_SLICE1_CLK_GATE_EN = 1;
-    PRU_CFG->SA_MX_REG_bit.PWM_EFC_EN = 1;
-
+    PRU_CFG->SA_MX_REG_bit.PWM_EFC_EN = 0;
 
     /*
      * Configure PWM channels
      */
-    // In TRIP mode, configure all PWM outputs to be low
-    PRU_CFG->PWM0_0_bit.PWM0_0_POS_TRIP = 1;
-    PRU_CFG->PWM0_0_bit.PWM0_0_NEG_TRIP = 1;
-    PRU_CFG->PWM0_1_bit.PWM0_1_POS_TRIP = 1;
-    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_TRIP = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_POS_TRIP = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_TRIP = 1;
+    // In TRIP mode, configure all PWM outputs to be high z
+    PRU_CFG->PWM0_0_bit.PWM0_0_POS_TRIP = 0;
+    PRU_CFG->PWM0_0_bit.PWM0_0_NEG_TRIP = 0;
+    PRU_CFG->PWM0_1_bit.PWM0_1_POS_TRIP = 0;
+    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_TRIP = 0;
+    PRU_CFG->PWM0_2_bit.PWM0_2_POS_TRIP = 0;
+    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_TRIP = 0;
 
-    // In INIT mode, configure all PWM outputs to be low
-    PRU_CFG->PWM0_0_bit.PWM0_0_POS_INIT = 1;
-    PRU_CFG->PWM0_0_bit.PWM0_0_NEG_INIT = 1;
-    PRU_CFG->PWM0_1_bit.PWM0_1_POS_INIT = 1;
-    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_INIT = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_POS_INIT = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_INIT = 1;
+    // In INIT mode, configure all PWM outputs to be high z
+    PRU_CFG->PWM0_0_bit.PWM0_0_POS_INIT = 0;
+    PRU_CFG->PWM0_0_bit.PWM0_0_NEG_INIT = 0;
+    PRU_CFG->PWM0_1_bit.PWM0_1_POS_INIT = 0;
+    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_INIT = 0;
+    PRU_CFG->PWM0_2_bit.PWM0_2_POS_INIT = 0;
+    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_INIT = 0;
 
-    // In ACT mode, configure the upper PWM outputs to HIGH, and lower to LOW
-    PRU_CFG->PWM0_0_bit.PWM0_0_POS_ACT = 2;
-    PRU_CFG->PWM0_0_bit.PWM0_0_POS_ACT = 2;
-    PRU_CFG->PWM0_1_bit.PWM0_1_POS_ACT = 2;
-    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_ACT = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_ACT = 1;
-    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_ACT = 1;
+    // In ACT mode, configure PWM outputs to high (POS) and low (NEG)
+    PRU_CFG->PWM0_0_bit.PWM0_0_POS_ACT = 1;
+    PRU_CFG->PWM0_0_bit.PWM0_0_POS_ACT = 1;
+    PRU_CFG->PWM0_1_bit.PWM0_1_POS_ACT = 1;
+    PRU_CFG->PWM0_1_bit.PWM0_1_NEG_ACT = 2;
+    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_ACT = 2;
+    PRU_CFG->PWM0_2_bit.PWM0_2_NEG_ACT = 2;
 
     /*
      * Configure IEP0 Timer
@@ -109,66 +104,112 @@ void pru_use_three_phase_pwm(void)
      *     CMP3, CMP4 : PWM channel B
      *     CMP5, CMP6 : PWM channel C
      */
-    PRU_IEP0->GLOBAL_CFG_REG_bit.CNT_ENABLE = 0;
-    PRU_IEP0->GLOBAL_CFG_REG_bit.DEFAULT_INC = 1;
-    PRU_IEP0->GLOBAL_CFG_REG_bit.CMP_INC = 1;
 
+    /*
+     * Counter configuration sequence
+     * RM Section 6.4.13.2.4
+     */
+    PRU_IEP0->GLOBAL_CFG_REG_bit.CNT_ENABLE = 0;
     PRU_IEP0->CMP_CFG_REG_bit.SHADOW_EN = 1;
 
-    // Enable the first 7 channels
-    PRU_IEP0->CMP_CFG_REG_bit.CMP_EN = 0x7F;
-
-    // Counter resets on Compare 0 event
+    // Counter resets on compare 0 event
     PRU_IEP0->CMP_CFG_REG_bit.CMP0_RST_CNT_EN = 1;
 
-    // Counter
-    PRU_IEP0->COUNT_REG0 = 0;
-    PRU_IEP0->COUNT_REG1 = 0;
+    // Clear counter
+    PRU_IEP0->COUNT_REG0 = 0xFFFFFFFF;
+    PRU_IEP0->COUNT_REG1 = 0xFFFFFFFF;
     PRU_IEP0->COUNT_RESET_VAL_REG0 = 0;
     PRU_IEP0->COUNT_RESET_VAL_REG1 = 0;
 
-    PRU_IEP0->CMP0_REG0 = IEP_COUNTER_HIGH_LIMIT;
-    PRU_IEP0->CMP0_REG1 = IEP_COUNTER_HIGH_LIMIT;
+    // Clear overflow flag by writing one
+    PRU_IEP0->GLOBAL_STATUS_REG_bit.CNT_OVF = 1;
 
-    PRU_IEP0->CMP1_REG0 = 0;
-    PRU_IEP0->CMP1_REG1 = 0;
+    // Clear compare status
+    PRU_IEP0->CMP_STATUS_REG_bit.CMP_STATUS = 0xFFFF;
 
-    PRU_IEP0->CMP2_REG0 = 0;
-    PRU_IEP0->CMP2_REG1 = 0;
+    // Configure compare values
+    PRU_IEP0->CMP0_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP1_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP2_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP3_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP4_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP5_REG0 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP6_REG0 = IEP_COUTER_WATERMARK - 1;
 
-    PRU_IEP0->CMP3_REG0 = 0;
-    PRU_IEP0->CMP3_REG1 = 0;
+    PRU_IEP0->CMP0_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP1_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP2_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP3_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP4_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP5_REG1 = IEP_COUTER_WATERMARK - 1;
+    PRU_IEP0->CMP6_REG1 = IEP_COUTER_WATERMARK - 1;
 
-    PRU_IEP0->CMP4_REG0 = 0;
-    PRU_IEP0->CMP4_REG1 = 0;
+    // Enable the first 7 compare channels
+    PRU_IEP0->CMP_CFG_REG_bit.CMP_EN = 0x7F;
 
-    PRU_IEP0->CMP5_REG0 = 0;
-    PRU_IEP0->CMP5_REG1 = 0;
+    // Set increment value
+    PRU_IEP0->GLOBAL_CFG_REG_bit.DEFAULT_INC = 1;
 
-    PRU_IEP0->CMP6_REG0 = 0;
-    PRU_IEP0->CMP6_REG1 = 0;
+    // Set compensation value
+    PRU_IEP0->COMPEN_REG_bit.COMPEN_CNT = 0;
 }
 
 
 #define IS_BETWEEN(VAL, LO, HI) \
     (((VAL) >= (LO)) && ((VAL) <= (HI)))
 
-void pru_set_pwm_duty(float a, float b, float c)
+void pru_set_pwm_duty(struct pwm_task_context *task, float a, float b, float c)
 {
+    assert(task != NULL);
     assert(IS_BETWEEN(a, 0.0, 1.0));
     assert(IS_BETWEEN(b, 0.0, 1.0));
     assert(IS_BETWEEN(c, 0.0, 1.0));
 
-    const uint32_t threshold_a = (uint32_t) (a * IEP_COUNTER_HIGH_LIMIT);
-    const uint32_t threshold_b = (uint32_t) (b * IEP_COUNTER_HIGH_LIMIT);
-    const uint32_t threshold_c = (uint32_t) (c * IEP_COUNTER_HIGH_LIMIT);
+    const uint32_t threshold_a = (uint32_t) (a * IEP_COUTER_WATERMARK);
+    const uint32_t threshold_b = (uint32_t) (b * IEP_COUTER_WATERMARK);
+    const uint32_t threshold_c = (uint32_t) (c * IEP_COUTER_WATERMARK);
 
-    PRU_IEP0->CMP1_REG1 = threshold_a;
-    PRU_IEP0->CMP2_REG1 = threshold_a;
-    PRU_IEP0->CMP3_REG1 = threshold_b;
-    PRU_IEP0->CMP4_REG1 = threshold_b;
-    PRU_IEP0->CMP5_REG1 = threshold_c;
-    PRU_IEP0->CMP6_REG1 = threshold_c;
+    task->compare_val_at_rising_a = threshold_a;
+    task->compare_val_at_rising_b = threshold_b;
+    task->compare_val_at_rising_c = threshold_c;
+
+    task->compare_val_at_falling_a = IEP_COUTER_WATERMARK - threshold_a;
+    task->compare_val_at_falling_b = IEP_COUTER_WATERMARK - threshold_b;
+    task->compare_val_at_falling_c = IEP_COUTER_WATERMARK - threshold_c;
+}
+
+void service_pwm_task(struct pwm_task_context *task)
+{
+    assert(task != NULL);
+
+    while((PRU_IEP0->CMP_STATUS_REG_bit.CMP_STATUS & 0x7E) != 0x7E);
+    PRU_IEP0->CMP1_REG0 = task->compare_val_at_rising_a;
+    PRU_IEP0->CMP1_REG1 = task->compare_val_at_rising_a;
+    PRU_IEP0->CMP2_REG0 = task->compare_val_at_rising_a;
+    PRU_IEP0->CMP2_REG1 = task->compare_val_at_rising_a;
+    PRU_IEP0->CMP3_REG0 = task->compare_val_at_rising_b;
+    PRU_IEP0->CMP3_REG1 = task->compare_val_at_rising_b;
+    PRU_IEP0->CMP4_REG0 = task->compare_val_at_rising_b;
+    PRU_IEP0->CMP4_REG1 = task->compare_val_at_rising_b;
+    PRU_IEP0->CMP5_REG0 = task->compare_val_at_rising_c;
+    PRU_IEP0->CMP5_REG1 = task->compare_val_at_rising_c;
+    PRU_IEP0->CMP6_REG0 = task->compare_val_at_rising_c;
+    PRU_IEP0->CMP6_REG1 = task->compare_val_at_rising_c;
+
+
+    while((PRU_IEP0->CMP_STATUS_REG_bit.CMP_STATUS & 0x7E) != 0x7E);
+    PRU_IEP0->CMP1_REG0 = task->compare_val_at_falling_a;
+    PRU_IEP0->CMP1_REG1 = task->compare_val_at_falling_a;
+    PRU_IEP0->CMP2_REG0 = task->compare_val_at_falling_a;
+    PRU_IEP0->CMP2_REG1 = task->compare_val_at_falling_a;
+    PRU_IEP0->CMP3_REG0 = task->compare_val_at_falling_b;
+    PRU_IEP0->CMP3_REG1 = task->compare_val_at_falling_b;
+    PRU_IEP0->CMP4_REG0 = task->compare_val_at_falling_b;
+    PRU_IEP0->CMP4_REG1 = task->compare_val_at_falling_b;
+    PRU_IEP0->CMP5_REG0 = task->compare_val_at_falling_c;
+    PRU_IEP0->CMP5_REG1 = task->compare_val_at_falling_c;
+    PRU_IEP0->CMP6_REG0 = task->compare_val_at_falling_c;
+    PRU_IEP0->CMP6_REG1 = task->compare_val_at_falling_c;
 }
 
 void pru_start_pwm_timer(void)

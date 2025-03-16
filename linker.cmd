@@ -41,4 +41,5 @@ SECTIONS
 	.stack fill=0x00 > DM_LOCAL, PAGE 1
     .bss   fill=0x00 > DM_LOCAL, PAGE 1
     .data  > DM_LOCAL, PAGE 1
+    .rofardata > IM, PAGE 0
 }
