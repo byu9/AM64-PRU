@@ -59,6 +59,22 @@ static void pru_enable_circuit_clocks(void)
 }
 
 
+static uint64_t pru_read_iep_timestamp(void)
+{
+    /*
+     * Reads the 64-bit time stamp register in high-low-high pattern.
+     * This is the industry standard way to read a 64-bit timestampS using only 32-bit instructions.
+     */
+    uint32_t high1, low, high2;
+    do {
+        high1 = PRU_IEP0->COUNT_REG1;
+        low = PRU_IEP0->COUNT_REG0;
+        high2 = PRU_IEP0->COUNT_REG1;
+    } while (high1 != high2);
+
+    return ((uint64_t) high1) << 32 | low;
+}
+
 
 /*
  * Sigma-Delta Demodulator Related
@@ -71,9 +87,16 @@ static void pru_reset_sigma_delta_channel(const uint32_t channel);
 static void pru_enable_all_sigma_delta_channels(void);
 static uint32_t pru_wait_for_sigma_delta_accumulator(const uint32_t channel);
 
-#define EXPERIMENT_BUFFER_SIZE  (1024)
+
+struct timestamped_sample
+{
+    uint64_t timestamp;
+    uint32_t signal;
+};
+
+#define EXPERIMENT_BUFFER_SIZE  (256)
 __attribute__((section(".noinit")))
-volatile static uint32_t signal_buffer[EXPERIMENT_BUFFER_SIZE];
+volatile static struct timestamped_sample signal_buffer[EXPERIMENT_BUFFER_SIZE];
 
 void main(void)
 {
@@ -104,7 +127,9 @@ void main(void)
         const uint32_t accumulator = pru_wait_for_sigma_delta_accumulator(0);
         const uint32_t demodulated = update_third_order_comb(&comb_stage, accumulator);
 
-        signal_buffer[buffer_index] = demodulated;
+        volatile struct timestamped_sample *const sample = &signal_buffer[buffer_index];
+        sample->timestamp = pru_read_iep_timestamp();;
+        sample->signal = demodulated;
 
         ++buffer_index;
         buffer_index %= EXPERIMENT_BUFFER_SIZE;
