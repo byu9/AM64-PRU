@@ -34,6 +34,10 @@ SECTIONS
 	 * Make sure the enrty point of the C runtime system is placed
 	 * at the beginning of the instruction space. By default the PRU cores fetch
 	 * instructions at the beginnig of the instruction memory upon reset.
+	 *
+	 * This is only important when loading program from the debugger, since
+	 * Linux can determine the entry point address using information from the
+	 * PRU firmware ELF header.
 	 */
 	.text:_c_int00* > 0x0, PAGE 0
 
